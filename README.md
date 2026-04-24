@@ -1,7 +1,3 @@
-# Semantic Mobility-Aware Navigation
-
-A ROS 2 (Humble) system that lets a Gazebo-simulated robot find and navigate to objects described in plain English. It uses CLIP for zero-shot semantic detection of tables and bookshelves, HSV thresholding for coloured cubes, and Gemini to parse natural-language commands — all without any pre-built map.
-
 ## Setup
 
 ```bash
@@ -18,4 +14,4 @@ ros2 run semantic_mobility_nav vla_navigator
 ros2 run semantic_mobility_nav robot_cli
 ```
 
-Example commands: `go to the blue cube`, `find the table`, `stop`
+Example commands: `go to blue cube`, `find the table`, `stop`
