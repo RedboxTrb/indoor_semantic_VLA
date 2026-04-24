@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.eggs/
+*.egg-info/
+
+# ROS 2 build artifacts
+build/
+install/
+log/
+.ros/
+
+# Environment / secrets — never commit these
+.env
+.env.*
+*.env
+secrets.yaml
+secrets.json
+*_key.txt
+*_credentials*
+
+# IDE
+.vscode/
+.idea/
+*.swp

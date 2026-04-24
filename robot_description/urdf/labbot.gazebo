@@ -1,0 +1,191 @@
+<?xml version="1.0" ?>
+<robot name="labbot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+<xacro:property name="body_color" value="Gazebo/Silver" />
+
+  <!-- BASE LINK - zero friction so it doesn't drag -->
+  <gazebo reference="base_link">
+    <material>${body_color}</material>
+    <mu1>0.0</mu1>
+    <mu2>0.0</mu2>
+    <kp>1000000.0</kp>
+    <kd>10.0</kd>
+    <minDepth>0.001</minDepth>
+    <selfCollide>false</selfCollide>
+    <gravity>true</gravity>
+  </gazebo>
+
+  <!-- WHEELS - high friction, high maxVel -->
+  <gazebo reference="left_whel_link_2">
+    <material>${body_color}</material>
+    <mu1>100.0</mu1>
+    <mu2>100.0</mu2>
+    <kp>1000000.0</kp>
+    <kd>100.0</kd>
+    <minDepth>0.001</minDepth>
+    <maxVel>10.0</maxVel>
+  </gazebo>
+
+  <gazebo reference="right_wheel_link_1">
+    <material>${body_color}</material>
+    <mu1>100.0</mu1>
+    <mu2>100.0</mu2>
+    <kp>1000000.0</kp>
+    <kd>100.0</kd>
+    <minDepth>0.001</minDepth>
+    <maxVel>10.0</maxVel>
+  </gazebo>
+
+  <!-- CAMERA STAND + CAM - no self collision -->
+  <gazebo reference="camstand_link_1">
+    <material>${body_color}</material>
+    <mu1>0.0</mu1>
+    <mu2>0.0</mu2>
+    <selfCollide>false</selfCollide>
+  </gazebo>
+
+  <gazebo reference="camera_link_1">
+    <material>${body_color}</material>
+    <mu1>0.0</mu1>
+    <mu2>0.0</mu2>
+    <selfCollide>false</selfCollide>
+  </gazebo>
+
+  <gazebo reference="realsense_DCAM_1">
+    <material>${body_color}</material>
+    <mu1>0.0</mu1>
+    <mu2>0.0</mu2>
+    <selfCollide>false</selfCollide>
+  </gazebo>
+
+  <!-- DIFFERENTIAL DRIVE PLUGIN -->
+  <gazebo>
+    <plugin name="differential_drive_controller" filename="libgazebo_ros_diff_drive.so">
+      <update_rate>50</update_rate>
+      <left_joint>left_wheel_joint</left_joint>
+      <right_joint>right_wheel_joint</right_joint>
+      <wheel_separation>0.269</wheel_separation>
+      <wheel_diameter>0.125</wheel_diameter>
+      <max_wheel_torque>20</max_wheel_torque>
+      <max_wheel_acceleration>5.0</max_wheel_acceleration>
+      <command_topic>cmd_vel</command_topic>
+      <publish_odom>true</publish_odom>
+      <publish_odom_tf>true</publish_odom_tf>
+      <publish_wheel_tf>false</publish_wheel_tf>
+      <odometry_topic>odom</odometry_topic>
+      <odometry_frame>odom</odometry_frame>
+      <robot_base_frame>base_link</robot_base_frame>
+    </plugin>
+  </gazebo>
+
+  <!-- REALSENSE DEPTH CAMERA -->
+  <gazebo reference="realsense_DCAM_1">
+    <sensor name="d435i_depth_camera" type="depth">
+      <always_on>true</always_on>
+      <update_rate>15</update_rate>
+      <visualize>true</visualize>
+      <camera>
+        <horizontal_fov>1.204</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>480</height>
+          <format>B8G8R8</format>
+        </image>
+        <clip>
+          <near>0.1</near>
+          <far>20.0</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <plugin name="depth_camera_controller" filename="libgazebo_ros_camera.so">
+        <ros>
+          <remapping>~/image_raw:=/realsense/realsense_d435i/image_raw</remapping>
+          <remapping>~/camera_info:=/realsense/realsense_d435i/camera_info</remapping>
+          <remapping>~/depth/image_raw:=/realsense/realsense_d435i/depth/image_raw</remapping>
+          <remapping>~/depth/camera_info:=/realsense/realsense_d435i/depth/camera_info</remapping>
+          <remapping>~/points:=/realsense/realsense_d435i/points</remapping>
+        </ros>
+        <frame_name>realsense_DCAM_1_optical</frame_name>
+        <min_depth>0.1</min_depth>
+        <max_depth>20.0</max_depth>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- IMU -->
+  <gazebo reference="imu_link">
+    <sensor name="imu_sensor" type="imu">
+      <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+        <ros>
+          <remapping>~/out:=imu/data</remapping>
+        </ros>
+        <initial_orientation_as_reference>false</initial_orientation_as_reference>
+      </plugin>
+      <always_on>true</always_on>
+      <update_rate>100</update_rate>
+      <visualize>false</visualize>
+    </sensor>
+  </gazebo>
+
+<!-- 2D LIDAR — TurtleBot3 LDS config -->
+  <gazebo reference="base_scan">
+    <material>Gazebo/FlatBlack</material>
+    <sensor type="ray" name="lds_lfcd_sensor">
+      <pose>0 0 0 0 0 0</pose>
+      <visualize>true</visualize>
+      <update_rate>5</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>360</samples>
+            <resolution>1</resolution>
+            <min_angle>0.0</min_angle>
+            <max_angle>6.28318530718</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.120</min>
+          <max>3.5</max>
+          <resolution>0.015</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.01</stddev>
+        </noise>
+      </ray>
+      <plugin name="turtlebot3_laserscan" filename="libgazebo_ros_laser.so">
+        <ros>
+          <remapping>~/out:=scan</remapping>
+        </ros>
+        <frame_name>base_scan</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+<!-- CASTERS -->
+<gazebo reference="caster_fl">
+  <mu1>0.0</mu1><mu2>0.0</mu2>
+  <kp>100000</kp><kd>100.0</kd>
+  <minDepth>0.005</minDepth><maxVel>0.1</maxVel>
+</gazebo>
+<gazebo reference="caster_fr">
+  <mu1>0.0</mu1><mu2>0.0</mu2>
+  <kp>100000</kp><kd>100.0</kd>
+  <minDepth>0.005</minDepth><maxVel>0.1</maxVel>
+</gazebo>
+<gazebo reference="caster_bl">
+  <mu1>0.0</mu1><mu2>0.0</mu2>
+  <kp>100000</kp><kd>100.0</kd>
+  <minDepth>0.005</minDepth><maxVel>0.1</maxVel>
+</gazebo>
+<gazebo reference="caster_br">
+  <mu1>0.0</mu1><mu2>0.0</mu2>
+  <kp>100000</kp><kd>100.0</kd>
+  <minDepth>0.005</minDepth><maxVel>0.1</maxVel>
+</gazebo>
+</robot>

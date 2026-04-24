@@ -1,0 +1,281 @@
+<?xml version="1.0" ?>
+<robot name="labbot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+<xacro:include filename="$(find basebot_urdf_description)/urdf/materials.xacro" />
+<xacro:include filename="$(find basebot_urdf_description)/urdf/labbot.trans" />
+<xacro:include filename="$(find basebot_urdf_description)/urdf/labbot.gazebo" />
+
+<!-- BASE LINK -->
+<link name="base_link">
+  <inertial>
+    <origin xyz="0 0 0.1" rpy="0 0 0"/>
+    <mass value="7.0"/>
+    <inertia ixx="0.712159" iyy="0.706032" izz="0.2013" ixy="0.0" iyz="0.0" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find basebot_urdf_description)/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+<collision>
+  <origin xyz="0 0 0" rpy="0 0 0"/>
+  <geometry>
+    <mesh filename="file://$(find basebot_urdf_description)/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
+  </geometry>
+</collision>
+</link>
+
+<!-- LEFT WHEEL -->
+<link name="left_whel_link_2">
+  <inertial>
+    <origin xyz="0.00040460307586471546 0.015994701532051597 5.538683957660717e-05" rpy="0 0 0"/>
+    <mass value="2"/>
+    <inertia ixx="0.003275" iyy="0.006019" izz="0.003274" ixy="6.9e-05" iyz="1e-05" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.007821 -0.134829 -0.065288" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find basebot_urdf_description)/meshes/left_whel_link_2.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0.007821 -0.134829 -0.065288" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find basebot_urdf_description)/meshes/left_whel_link_2.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<!-- RIGHT WHEEL -->
+<link name="right_wheel_link_1">
+  <inertial>
+    <origin xyz="5.088081718130841e-06 -0.015999425002053425 -5.724166510311102e-05" rpy="0 0 0"/>
+    <mass value="2"/>
+    <inertia ixx="0.003273" iyy="0.006021" izz="0.003274" ixy="-1e-06" iyz="1e-05" ixz="-0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.011178 0.134197 -0.064344" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find basebot_urdf_description)/meshes/right_wheel_link_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0.011178 0.134197 -0.064344" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find basebot_urdf_description)/meshes/right_wheel_link_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<!-- CAMERA STAND -->
+<link name="camstand_link_1">
+  <inertial>
+    <origin xyz="0.04217217408283482 0.005436617139108826 0.028147884402392465" rpy="0 0 0"/>
+    <mass value="0.0001"/>
+    <inertia ixx="0.000001" iyy="0.000001" izz="0.000001" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.003673 0.014592 -0.865908" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find basebot_urdf_description)/meshes/camstand_link_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry><box><size>0.001 0.001 0.001</size></box></geometry>
+  </collision>
+</link>
+
+<!-- CAMERA LINK -->
+<link name="camera_link_1">
+  <inertial>
+    <origin xyz="0.012761178626573465 -0.025656134990035738 0.035753842102039024" rpy="0 0 0"/>
+    <mass value="0.0001"/>
+    <inertia ixx="0.000001" iyy="0.000001" izz="0.000001" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.050811 -0.01711 -0.903937" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find basebot_urdf_description)/meshes/camera_link_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry><box><size>0.001 0.001 0.001</size></box></geometry>
+  </collision>
+</link>
+
+<!-- REALSENSE CAMERA -->
+<link name="realsense_DCAM_1">
+  <inertial>
+    <origin xyz="0.011661374386282217 -0.0011595109215310883 0.0009812665813246912" rpy="0 0 0"/>
+    <mass value="0.0001"/>
+    <inertia ixx="0.000001" iyy="0.000001" izz="0.000001" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.076424 0.007908 -0.952026" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find basebot_urdf_description)/meshes/realsense_DCAM_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry><box><size>0.001 0.001 0.001</size></box></geometry>
+  </collision>
+</link>
+
+<!-- OPTICAL FRAME -->
+<joint name="realsense_optical_joint" type="fixed">
+  <parent link="realsense_DCAM_1"/>
+  <child link="realsense_DCAM_1_optical"/>
+  <origin xyz="0 0 0" rpy="1.57 3.14 1.57"/>
+</joint>
+<link name="realsense_DCAM_1_optical"/>
+
+<!-- IMU -->
+<link name="imu_link"/>
+<joint name="imu_joint" type="fixed">
+  <parent link="base_link"/>
+  <child link="imu_link"/>
+  <origin xyz="0 0 0"/>
+</joint>
+
+<!-- 2D LIDAR — TurtleBot3 LDS model, mounted at z=0.5m -->
+<link name="base_scan">
+  <inertial>
+    <mass value="0.125"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <inertia ixx="0.001" iyy="0.001" izz="0.001" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find basebot_urdf_description)/turtlebot3_common/meshes/lds.dae" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="dark"/>
+  </visual>
+  <collision>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry>
+      <cylinder length="0.0315" radius="0.055"/>
+    </geometry>
+  </collision>
+</link>
+
+<joint name="scan_joint" type="fixed">
+  <parent link="base_link"/>
+  <child link="base_scan"/>
+  <origin xyz="0 0 0.6" rpy="0 0 0"/>
+</joint>
+
+<!-- WHEEL JOINTS -->
+<joint name="left_wheel_joint" type="continuous">
+  <origin xyz="-0.007821 0.134829 0.065288" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="left_whel_link_2"/>
+  <axis xyz="0 1 0"/>
+  <dynamics damping="0.1" friction="0.0"/>
+</joint>
+
+<joint name="right_wheel_joint" type="continuous">
+  <origin xyz="-0.011178 -0.134197 0.064344" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="right_wheel_link_1"/>
+  <axis xyz="0 1 0"/>
+  <dynamics damping="0.1" friction="0.0"/>
+</joint>
+
+<!-- CAMERA STAND JOINT -->
+<joint name="camstand_joint" type="fixed">
+  <origin xyz="0.003673 -0.014592 0.865908" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="camstand_link_1"/>
+</joint>
+
+<!-- CAM JOINT -->
+<joint name="cam_joint" type="fixed">
+  <origin xyz="0.047138 0.031702 0.038029" rpy="0 0 0"/>
+  <parent link="camstand_link_1"/>
+  <child link="camera_link_1"/>
+</joint>
+
+<!-- CAMERA JOINT -->
+<joint name="camera_joint" type="fixed">
+  <origin xyz="0.025613 -0.025018 0.048089" rpy="0 0 0"/>
+  <parent link="camera_link_1"/>
+  <child link="realsense_DCAM_1"/>
+</joint>
+
+<!-- INVISIBLE ZERO-FRICTION CASTERS -->
+<link name="caster_fl">
+  <inertial>
+    <mass value="1"/>
+    <inertia ixx="0.00001" iyy="0.00001" izz="0.00001" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <collision>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry><sphere><radius>0.005</radius></sphere></geometry>
+  </collision>
+</link>
+<joint name="caster_fl_joint" type="fixed">
+  <parent link="base_link"/>
+  <child link="caster_fl"/>
+  <origin xyz="0.161 0.168 -0.0575" rpy="0 0 0"/>
+</joint>
+
+<link name="caster_fr">
+  <inertial>
+    <mass value="1"/>
+    <inertia ixx="0.00001" iyy="0.00001" izz="0.00001" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <collision>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry><sphere><radius>0.005</radius></sphere></geometry>
+  </collision>
+</link>
+<joint name="caster_fr_joint" type="fixed">
+  <parent link="base_link"/>
+  <child link="caster_fr"/>
+  <origin xyz="0.161 -0.196 -0.0575" rpy="0 0 0"/>
+</joint>
+
+<link name="caster_bl">
+  <inertial>
+    <mass value="1"/>
+    <inertia ixx="0.00001" iyy="0.00001" izz="0.00001" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <collision>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry><sphere><radius>0.005</radius></sphere></geometry>
+  </collision>
+</link>
+<joint name="caster_bl_joint" type="fixed">
+  <parent link="base_link"/>
+  <child link="caster_bl"/>
+  <origin xyz="-0.183 0.175 -0.0575" rpy="0 0 0"/>
+</joint>
+
+<link name="caster_br">
+  <inertial>
+    <mass value="1"/>
+    <inertia ixx="0.00001" iyy="0.00001" izz="0.00001" ixy="0" iyz="0" ixz="0"/>
+  </inertial>
+  <collision>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry><sphere><radius>0.005</radius></sphere></geometry>
+  </collision>
+</link>
+<joint name="caster_br_joint" type="fixed">
+  <parent link="base_link"/>
+  <child link="caster_br"/>
+  <origin xyz="-0.183 -0.188 -0.0575" rpy="0 0 0"/>
+</joint>
+
+</robot>
