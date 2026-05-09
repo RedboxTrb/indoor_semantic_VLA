@@ -22,6 +22,7 @@ def generate_launch_description():
         'LD_LIBRARY_PATH',
         [os.environ.get('LD_LIBRARY_PATH', ''), ':', _TORCH_LIB]
     )
+    malloc_env = SetEnvironmentVariable('MALLOC_CHECK_', '0')
 
     okvis_node = Node(
         package='okvis',
@@ -57,6 +58,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         torch_lib_env,
+        malloc_env,
         csv_path_arg,
         okvis_node,
     ])

@@ -80,12 +80,19 @@ def build_sim():
     sim_cfg.enable_physics = False
     sim_cfg.allow_sliding  = False
 
+    # 15° downward camera tilt — improves floor coverage significantly.
+    # Quaternion: rotate -15° around X axis (pitch down in Habitat Y-up frame).
+    import math as _math
+    _pitch = -15.0 * _math.pi / 180.0
+    _cam_orientation = Q.from_euler_angles(_pitch, 0.0, 0.0)
+
     def _cam(uuid, sensor_type, x_offset=0.0):
         s = habitat_sim.CameraSensorSpec()
         s.uuid        = uuid
         s.sensor_type = sensor_type
         s.resolution  = [IMG_H, IMG_W]
         s.position    = [x_offset, CAM_HEIGHT, 0.0]
+        s.orientation = _cam_orientation
         s.hfov        = HFOV_DEG
         return s
 
