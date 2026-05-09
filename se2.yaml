@@ -1,0 +1,50 @@
+%YAML:1.2
+# SPDX-FileCopyrightText: 2021-2023 Smart Robotics Lab, Imperial College London, Technical University of Munich
+# SPDX-License-Identifier: CC0-1.0
+
+general:
+  # outputs
+  results_directory:          "/tmp/habitat_okvis_meshes"
+  write_mesh_output: true
+
+  # Sensor processing — Replica uses 1x (no downsampling); depth is already float32 metres
+  sensor_measurement_downsampling: 1
+  depth_image_resolution_downsampling: 1
+
+  # Submapping — tuned to match Replica evaluation thresholds
+  submap_kf_threshold: 10
+  submap_overlap_ratio: 0.2
+  submap_min_frames: 20
+  near_plane: 0.4
+  far_plane: 4.0
+
+  # Alignment settings — disabled in Replica config (sim has near-perfect poses)
+  use_map_to_map_factors: false
+  use_map_to_live_factors: false
+  n_factors_per_state: 200
+  sensor_error: 0.4
+
+  # Network depth settings
+  use_uncertainty: false
+
+map:
+  # 12.8m cube at 5cm voxels — matches Replica se2.yaml exactly; fits a single room well
+  dim:            [12.8, 12.8, 12.8]
+  res:            0.05
+
+data:
+  # occupancy data — Replica-tuned uncertainty parameters
+  surface_boundary:        0
+  min_occupancy:           -100
+  max_occupancy:            100
+  log_odd_min:             -5.015
+  log_odd_max:              5.015
+  fs_integr_scale:         1
+  const_surface_thickness: false
+  uncertainty_model:       quadratic
+  tau_min_factor:          3
+  tau_max_factor:          12
+  k_tau:                   0.01
+  sigma_min_factor:        3
+  sigma_max_factor:        12
+  k_sigma:                 0.017

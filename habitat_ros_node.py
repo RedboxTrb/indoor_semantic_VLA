@@ -116,11 +116,13 @@ class HabitatBridgeNode(Node):
     def __init__(self):
         super().__init__('habitat_bridge')
 
-        self._pub_rgb   = self.create_publisher(Image,      '/d435i_depth_camera/image_raw',         10)
-        self._pub_depth = self.create_publisher(Image,      '/d435i_depth_camera/depth/image_raw',   10)
-        self._pub_ci    = self.create_publisher(CameraInfo, '/d435i_depth_camera/camera_info',       10)
-        self._pub_dci   = self.create_publisher(CameraInfo, '/d435i_depth_camera/depth/camera_info', 10)
-        self._pub_imu   = self.create_publisher(Imu,        '/imu/data',                             10)
+        self._pub_rgb       = self.create_publisher(Image,      '/d435i_depth_camera/image_raw',               10)
+        self._pub_rgb_right = self.create_publisher(Image,      '/d435i_depth_camera/right/image_raw',         10)
+        self._pub_depth     = self.create_publisher(Image,      '/d435i_depth_camera/depth/image_raw',         10)
+        self._pub_ci        = self.create_publisher(CameraInfo, '/d435i_depth_camera/camera_info',             10)
+        self._pub_ci_right  = self.create_publisher(CameraInfo, '/d435i_depth_camera/right/camera_info',       10)
+        self._pub_dci       = self.create_publisher(CameraInfo, '/d435i_depth_camera/depth/camera_info',       10)
+        self._pub_imu       = self.create_publisher(Imu,        '/imu/data',                                   10)
 
         self._latest    = None
         self._lock      = threading.Lock()
@@ -167,12 +169,13 @@ class HabitatBridgeNode(Node):
                 parts = sock.recv_multipart()
             except zmq.Again:
                 continue
-            if len(parts) != 3:
+            if len(parts) not in (3, 4):
                 continue
             try:
-                hdr   = json.loads(parts[0])
-                bgr   = np.frombuffer(parts[1], dtype=np.uint8 ).reshape(IMG_H, IMG_W, 3).copy()
-                depth = np.frombuffer(parts[2], dtype=np.float32).reshape(IMG_H, IMG_W   ).copy()
+                hdr       = json.loads(parts[0])
+                bgr       = np.frombuffer(parts[1], dtype=np.uint8 ).reshape(IMG_H, IMG_W, 3).copy()
+                bgr_right = np.frombuffer(parts[2], dtype=np.uint8 ).reshape(IMG_H, IMG_W, 3).copy() if len(parts) == 4 else None
+                depth     = np.frombuffer(parts[-1], dtype=np.float32).reshape(IMG_H, IMG_W  ).copy()
 
                 # Compute synthetic IMU if pose data present
                 if 'pos' in hdr and 'quat' in hdr:
@@ -185,7 +188,7 @@ class HabitatBridgeNode(Node):
                         self._imu_acc = acc
 
                 with self._lock:
-                    self._latest = (hdr['t'], bgr, depth)
+                    self._latest = (hdr['t'], bgr, bgr_right, depth)
             except Exception as exc:
                 self.get_logger().warn(f'ZMQ decode error: {exc}')
         sock.close()
@@ -234,19 +237,24 @@ class HabitatBridgeNode(Node):
         if data is None:
             return
 
-        t_float, bgr, depth = data
+        t_float, bgr, bgr_right, depth = data
         stamp = self._float_to_stamp(t_float)
 
-        rgb_msg = Image()
-        rgb_msg.header.stamp    = stamp
-        rgb_msg.header.frame_id = FRAME_ID
-        rgb_msg.height    = IMG_H
-        rgb_msg.width     = IMG_W
-        rgb_msg.encoding  = 'bgr8'
-        rgb_msg.is_bigendian = False
-        rgb_msg.step      = IMG_W * 3
-        rgb_msg.data      = bgr.tobytes()
-        self._pub_rgb.publish(rgb_msg)
+        def _make_rgb_msg(pixels):
+            m = Image()
+            m.header.stamp    = stamp
+            m.header.frame_id = FRAME_ID
+            m.height          = IMG_H
+            m.width           = IMG_W
+            m.encoding        = 'bgr8'
+            m.is_bigendian    = False
+            m.step            = IMG_W * 3
+            m.data            = pixels.tobytes()
+            return m
+
+        self._pub_rgb.publish(_make_rgb_msg(bgr))
+        if bgr_right is not None:
+            self._pub_rgb_right.publish(_make_rgb_msg(bgr_right))
 
         dep_msg = Image()
         dep_msg.header.stamp    = stamp
@@ -261,6 +269,8 @@ class HabitatBridgeNode(Node):
 
         ci = self._make_camera_info(stamp)
         self._pub_ci.publish(ci)
+        if bgr_right is not None:
+            self._pub_ci_right.publish(ci)
         self._pub_dci.publish(ci)
 
     def _imu_thread(self):

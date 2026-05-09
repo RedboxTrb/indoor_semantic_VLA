@@ -22,6 +22,7 @@ ZMQ_PORT   = 5555
 IMG_W      = 640
 IMG_H      = 480
 CAM_HEIGHT = 1.5      # metres
+BASELINE   = 0.06     # stereo baseline [m] — matches Replica stereo setup (replica-imap-stereo.py)
 STEP_M     = 0.07     # 0.20 caused RANSAC failure (3 m/s @ 15 Hz > OKVIS tracking limit)
 TURN_DEG   = 5.0
 HFOV_DEG   = 78.7     # → focal_length ≈ 390.6 px at 640×480, matches rsD455 okvis2.yaml
@@ -79,19 +80,20 @@ def build_sim():
     sim_cfg.enable_physics = False
     sim_cfg.allow_sliding  = False
 
-    def _cam(uuid, sensor_type):
+    def _cam(uuid, sensor_type, x_offset=0.0):
         s = habitat_sim.CameraSensorSpec()
         s.uuid        = uuid
         s.sensor_type = sensor_type
         s.resolution  = [IMG_H, IMG_W]
-        s.position    = [0.0, CAM_HEIGHT, 0.0]
+        s.position    = [x_offset, CAM_HEIGHT, 0.0]
         s.hfov        = HFOV_DEG
         return s
 
     agent_cfg = habitat_sim.agent.AgentConfiguration()
     agent_cfg.sensor_specifications = [
-        _cam('color', habitat_sim.SensorType.COLOR),
-        _cam('depth', habitat_sim.SensorType.DEPTH),
+        _cam('color',       habitat_sim.SensorType.COLOR),           # cam0 left
+        _cam('color_right', habitat_sim.SensorType.COLOR, BASELINE), # cam1 right (6 cm)
+        _cam('depth',       habitat_sim.SensorType.DEPTH),           # depth at cam0
     ]
     agent_cfg.action_space = {
         'move_forward': habitat_sim.agent.ActionSpec(
@@ -187,9 +189,10 @@ def main():
         else:
             obs = sim.get_sensor_observations()
 
-        # RGB: RGBA → BGR (matches what OKVIS/Gazebo receives)
-        bgr   = obs['color'][:, :, :3][:, :, ::-1].copy()  # uint8 HxWx3
-        depth = obs['depth'].astype(np.float32)             # float32 HxW metres
+        # RGB: RGBA → BGR
+        bgr       = obs['color'][:, :, :3][:, :, ::-1].copy()        # uint8 HxWx3 left
+        bgr_right = obs['color_right'][:, :, :3][:, :, ::-1].copy()  # uint8 HxWx3 right
+        depth     = obs['depth'].astype(np.float32)                   # float32 HxW metres
 
         # Ground-truth pose for synthetic IMU
         ag    = sim.agents[0].get_state()
@@ -202,7 +205,7 @@ def main():
         moving  = act in ('move_forward', 'turn_left', 'turn_right', 'backward')
         header  = json.dumps({'t': ts, 'w': IMG_W, 'h': IMG_H, 'fid': frame_id,
                               'pos': pos, 'quat': quat, 'moving': moving}).encode()
-        sock.send_multipart([header, bgr.tobytes(), depth.tobytes()])
+        sock.send_multipart([header, bgr.tobytes(), bgr_right.tobytes(), depth.tobytes()])
 
         frame_id += 1
         elapsed = time.time() - t0
