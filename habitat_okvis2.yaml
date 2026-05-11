@@ -47,16 +47,16 @@ cameras:
 
 # additional camera parameters
 camera_parameters:
-    timestamp_tolerance: 0.5 # [s] sim_rgbd: loose tolerance for simulation timestamps
+    timestamp_tolerance: 0.033 # [s] half-frame at 30Hz
     sync_cameras: [0, 1]
     image_delay: 0.0
     online_calibration:
         do_extrinsics: false
-        do_extrinsics_final_ba: true
-        sigma_r: 0.01
-        sigma_alpha: 0.1
-        sigma_r_final_ba: 0.03
-        sigma_alpha_final_ba: 0.3
+        do_extrinsics_final_ba: false
+        sigma_r: 0.001
+        sigma_alpha: 0.01
+        sigma_r_final_ba: 0.003
+        sigma_alpha_final_ba: 0.016
     deep_stereo_indices: [] # sim_rgbd: disabled for simulation
     fov_scale: 1.0 # Divisor for new focal length which is only used when fisheye stereo rectification for dense mapping.
 
@@ -91,12 +91,12 @@ frontend_parameters:
     keyframe_overlap: 0.55 # minimum field-of-view overlap 0.55
     use_cnn: false # whether to use the segmentation CNN
     parallelise_detection: true
-    num_matching_threads: 3
+    num_matching_threads: 4
 
 # estimator parameters
 estimator_parameters:
-    num_keyframes: 5 # number of keyframes in optimisation window
-    num_loop_closure_frames: 5 # number of loop closure frames in optimisation window
+    num_keyframes: 4 # number of keyframes in optimisation window
+    num_loop_closure_frames: 3 # number of loop closure frames in optimisation window
     num_imu_frames: 3 # number of frames linked by most recent nonlinear IMU error terms
     do_loop_closures: 1
     do_final_ba: 1

@@ -401,7 +401,7 @@ class HabitatBridgeNode(Node):
             tick += 1
 
             msg = Imu()
-            msg.header.stamp    = self.get_clock().now().to_msg()
+            msg.header.stamp    = self._float_to_stamp(time.time())  # wall clock — same source as camera timestamps
             msg.header.frame_id = 'imu_link'
             msg.angular_velocity.x    = float(ang[0])
             msg.angular_velocity.y    = float(ang[1])
