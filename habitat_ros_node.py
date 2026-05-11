@@ -22,18 +22,24 @@ import zmq
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image, CameraInfo, Imu
-from nav_msgs.msg import Odometry
+from nav_msgs.msg import Odometry, OccupancyGrid, Path
+from geometry_msgs.msg import PoseStamped
 from builtin_interfaces.msg import Time
 
-ZMQ_PORT = 5555
-IMG_W    = 640
-IMG_H    = 480
-FX = FY  = 390.598938
-CX       = 320.581665
-CY       = 237.712845
-FRAME_ID = 'realsense_DCAM_1_optical'
-IMU_HZ   = 100
-G        = 9.81007   # matches okvis2.yaml
+ZMQ_PORT   = 5555
+IMG_W      = 640
+IMG_H      = 480
+FX = FY    = 390.598938
+CX         = 320.581665
+CY         = 237.712845
+FRAME_ID   = 'realsense_DCAM_1_optical'
+IMU_HZ     = 100
+G          = 9.81007   # matches okvis2.yaml
+CAM_HEIGHT = 0.8       # camera height above floor [m] — matches habitat_bridge_pub.py
+
+# 2D costmap grid: 512×512 cells at 5cm/cell = 25.6m × 25.6m
+MAP_RES   = 0.05
+MAP_CELLS = 512
 
 # Habitat uses Y-up / right-hand (OpenGL).  OKVIS body frame (T_BS=I) is
 # camera-aligned: X-right, Y-down, Z-forward.
@@ -123,6 +129,8 @@ class HabitatBridgeNode(Node):
         self._pub_ci_right  = self.create_publisher(CameraInfo, '/d435i_depth_camera/right/camera_info',       10)
         self._pub_dci       = self.create_publisher(CameraInfo, '/d435i_depth_camera/depth/camera_info',       10)
         self._pub_imu       = self.create_publisher(Imu,        '/imu/data',                                   10)
+        self._pub_costmap   = self.create_publisher(OccupancyGrid, '/habitat/costmap_2d',                    1)
+        self._pub_path2d    = self.create_publisher(Path,          '/habitat/path_2d',                       1)
 
         self._latest    = None
         self._lock      = threading.Lock()
@@ -142,6 +150,14 @@ class HabitatBridgeNode(Node):
         self._imu_thread_handle.start()
 
         self.create_timer(1.0 / 30.0, self._publish_frame)
+        self.create_timer(0.5,        self._publish_costmap)   # 2 Hz
+
+        # 2D costmap state
+        self._costmap_grid   = np.full((MAP_CELLS, MAP_CELLS), -1, dtype=np.int8)
+        self._costmap_origin = None   # (ox, oz) world-frame corner of grid
+        self._path_poses     = []
+        self._latest_pose_pos  = None  # (x, y, z) from OKVIS odometry
+        self._latest_pose_quat = None  # (w, x, y, z)
 
         # Trajectory logger
         self._traj_csv = open(os.path.expanduser('~/okvis_trajectory.csv'), 'w', newline='')
@@ -229,6 +245,17 @@ class HabitatBridgeNode(Node):
             f'vel=({v.x:.3f},{v.y:.3f},{v.z:.3f})',
             throttle_duration_sec=1.0)
 
+        # Store latest pose for costmap projection
+        q = msg.pose.pose.orientation
+        self._latest_pose_pos  = (p.x, p.y, p.z)
+        self._latest_pose_quat = (q.w, q.x, q.y, q.z)
+
+        # Accumulate path for 2D trajectory display
+        ps = PoseStamped()
+        ps.header = msg.header
+        ps.pose   = msg.pose.pose
+        self._path_poses.append(ps)
+
     # ── Timer callbacks ───────────────────────────────────────────────────────
     def _publish_frame(self):
         with self._lock:
@@ -272,6 +299,87 @@ class HabitatBridgeNode(Node):
         if bgr_right is not None:
             self._pub_ci_right.publish(ci)
         self._pub_dci.publish(ci)
+
+        if self._latest_pose_pos is not None:
+            self._update_costmap(depth, self._latest_pose_pos, self._latest_pose_quat)
+
+    # ── 2D costmap ────────────────────────────────────────────────────────────
+    def _update_costmap(self, depth: np.ndarray, pos, quat_wxyz):
+        """Project depth frame into 2D occupancy grid using latest OKVIS pose.
+
+        OKVIS world frame (IMU disabled, T_BS=I): X-right, Y-down, Z-forward.
+        Floor plane is X-Z; Y is approximately vertical. We map world-X → col,
+        world-Z → row to get a standard top-down view.
+        """
+        step = 8   # 8× downsample: 480→60 rows, 640→80 cols
+        d    = depth[::step, ::step]
+        H, W = d.shape
+
+        u = (np.arange(W) * step).astype(np.float32)
+        v = (np.arange(H) * step).astype(np.float32)
+        uu, vv = np.meshgrid(u, v)
+
+        valid = (d > 0.1) & (d < 3.5)
+
+        X_cam = (uu - CX) * d / FX
+        Y_cam = (vv - CY) * d / FY   # positive = below camera (Y-down body frame)
+        Z_cam = d
+
+        # Keep points in obstacle band 5cm–150cm above floor
+        h_floor  = CAM_HEIGHT - Y_cam
+        obstacle = valid & (h_floor > 0.05) & (h_floor < 1.5)
+
+        if not np.any(obstacle):
+            return
+
+        pts = np.stack([X_cam[obstacle], Y_cam[obstacle], Z_cam[obstacle]], axis=1)
+
+        R       = _quat_to_rot(*quat_wxyz)
+        pos_arr = np.array(pos, dtype=np.float64)
+        pts_w   = (R @ pts.T).T + pos_arr   # (N,3) in OKVIS world frame
+
+        if self._costmap_origin is None:
+            half = MAP_CELLS * MAP_RES / 2.0
+            self._costmap_origin = (pos_arr[0] - half, pos_arr[2] - half)
+        ox, oz = self._costmap_origin
+
+        col = ((pts_w[:, 0] - ox) / MAP_RES).astype(int)
+        row = ((pts_w[:, 2] - oz) / MAP_RES).astype(int)
+        ok  = (col >= 0) & (col < MAP_CELLS) & (row >= 0) & (row < MAP_CELLS)
+        self._costmap_grid[row[ok], col[ok]] = 100   # occupied
+
+        # Mark robot footprint as free space
+        rx = int((pos_arr[0] - ox) / MAP_RES)
+        rz = int((pos_arr[2] - oz) / MAP_RES)
+        r  = 3
+        r0 = max(0, rz - r); r1 = min(MAP_CELLS, rz + r + 1)
+        c0 = max(0, rx - r); c1 = min(MAP_CELLS, rx + r + 1)
+        patch = self._costmap_grid[r0:r1, c0:c1]
+        patch[patch == -1] = 0   # unknown → free within footprint
+
+    def _publish_costmap(self):
+        if self._costmap_origin is None:
+            return
+        stamp = self.get_clock().now().to_msg()
+        ox, oz = self._costmap_origin
+
+        og = OccupancyGrid()
+        og.header.stamp    = stamp
+        og.header.frame_id = 'odom'
+        og.info.resolution = MAP_RES
+        og.info.width      = MAP_CELLS
+        og.info.height     = MAP_CELLS
+        og.info.origin.position.x = float(ox)
+        og.info.origin.position.y = float(oz)
+        og.info.origin.position.z = 0.0
+        og.data = self._costmap_grid.flatten().tolist()
+        self._pub_costmap.publish(og)
+
+        path = Path()
+        path.header.stamp    = stamp
+        path.header.frame_id = 'odom'
+        path.poses = list(self._path_poses)
+        self._pub_path2d.publish(path)
 
     def _imu_thread(self):
         """Dedicated 100 Hz IMU publisher thread — bypasses rclpy executor."""
