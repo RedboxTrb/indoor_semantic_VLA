@@ -21,7 +21,7 @@ import habitat_sim
 ZMQ_PORT   = 5555
 IMG_W      = 640
 IMG_H      = 480
-CAM_HEIGHT = 0.8      # metres
+CAM_HEIGHT = 1.0      # metres
 BASELINE   = 0.06     # stereo baseline [m] — matches Replica stereo setup (replica-imap-stereo.py)
 STEP_M     = 0.07     # 0.20 caused RANSAC failure (3 m/s @ 15 Hz > OKVIS tracking limit)
 TURN_DEG   = 5.0

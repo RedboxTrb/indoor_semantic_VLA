@@ -35,7 +35,7 @@ CY         = 237.712845
 FRAME_ID   = 'realsense_DCAM_1_optical'
 IMU_HZ     = 100
 G          = 9.81007   # matches okvis2.yaml
-CAM_HEIGHT = 0.8       # camera height above floor [m] — matches habitat_bridge_pub.py
+CAM_HEIGHT = 1.0       # camera height above floor [m] — matches habitat_bridge_pub.py
 
 # 2D costmap grid: 512×512 cells at 5cm/cell = 25.6m × 25.6m
 MAP_RES   = 0.05
@@ -153,11 +153,12 @@ class HabitatBridgeNode(Node):
         self.create_timer(0.5,        self._publish_costmap)   # 2 Hz
 
         # 2D costmap state
-        self._costmap_grid   = np.full((MAP_CELLS, MAP_CELLS), -1, dtype=np.int8)
-        self._costmap_origin = None   # (ox, oz) world-frame corner of grid
-        self._path_poses     = []
+        self._costmap_grid    = np.full((MAP_CELLS, MAP_CELLS), -1, dtype=np.int8)
+        self._costmap_origin  = None   # (ox, oz) world-frame corner of grid
+        self._path_poses      = []
         self._latest_pose_pos  = None  # (x, y, z) from OKVIS odometry
         self._latest_pose_quat = None  # (w, x, y, z)
+        self._okvis_frame_id   = 'odom'  # updated from first odometry message
 
         # Trajectory logger
         self._traj_csv = open(os.path.expanduser('~/okvis_trajectory.csv'), 'w', newline='')
@@ -249,6 +250,7 @@ class HabitatBridgeNode(Node):
         q = msg.pose.pose.orientation
         self._latest_pose_pos  = (p.x, p.y, p.z)
         self._latest_pose_quat = (q.w, q.x, q.y, q.z)
+        self._okvis_frame_id   = msg.header.frame_id or 'odom'
 
         # Accumulate path for 2D trajectory display
         ps = PoseStamped()
@@ -365,7 +367,7 @@ class HabitatBridgeNode(Node):
 
         og = OccupancyGrid()
         og.header.stamp    = stamp
-        og.header.frame_id = 'odom'
+        og.header.frame_id = self._okvis_frame_id
         og.info.resolution = MAP_RES
         og.info.width      = MAP_CELLS
         og.info.height     = MAP_CELLS
@@ -377,7 +379,7 @@ class HabitatBridgeNode(Node):
 
         path = Path()
         path.header.stamp    = stamp
-        path.header.frame_id = 'odom'
+        path.header.frame_id = self._okvis_frame_id
         path.poses = list(self._path_poses)
         self._pub_path2d.publish(path)
 
@@ -397,10 +399,6 @@ class HabitatBridgeNode(Node):
                 acc = self._imu_acc.copy()
 
             tick += 1
-            if tick % 100 == 1:   # once per second
-                self.get_logger().info(
-                    f'[IMU] acc=({acc[0]:.3f},{acc[1]:.3f},{acc[2]:.3f})  '
-                    f'gyr=({ang[0]:.4f},{ang[1]:.4f},{ang[2]:.4f})')
 
             msg = Imu()
             msg.header.stamp    = self.get_clock().now().to_msg()

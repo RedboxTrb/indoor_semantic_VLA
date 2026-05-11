@@ -62,15 +62,15 @@ camera_parameters:
 
 # the IMU sensor model
 imu_parameters:
-    use: false # synthetic IMU from ground-truth Habitat poses
+    use: true # synthetic IMU from ground-truth Habitat poses
     a_max: 160.0 # acceleration saturation [m/s^2]
     g_max: 10.0 # gyro saturation [rad/s]
     sigma_g_c: 0.00278 # gyro noise density [rad/s/sqrt(Hz)]
-    sigma_bg: 0.03 # gyro bias prior [rad/s]
-    sigma_a_c: 0.0252 # accelerometer noise density [m/s^2/sqrt(Hz)]
-    sigma_ba: 0.01 # accelerometer bias prior [m/s^2]
+    sigma_bg: 0.03     # gyro bias prior [rad/s]
+    sigma_a_c: 0.0252  # accelerometer noise density [m/s^2/sqrt(Hz)]
+    sigma_ba: 0.01
     sigma_gw_c: 0.0008 # gyro drift noise density [rad/s^s/sqrt(Hz)]
-    sigma_aw_c: 0.04 # accelerometer drift noise density [m/s^2/sqrt(Hz)]
+    sigma_aw_c: 0.04   # accelerometer drift noise density [m/s^2/sqrt(Hz)]
     a0: [0.0, 0.0, 0.0] # no hardware bias in simulation
     g0: [0.0, 0.0, 0.0] # Initial gyro bias [rad/s]
     s_a: [ 1.0,  1.0, 1.0 ] # scale factor for accelerometer measurements: a_true = s_a * a_meas + b_a
@@ -90,8 +90,8 @@ frontend_parameters:
     max_num_keypoints: 400 # keep manageable — 1000 overwhelms RANSAC in sim
     keyframe_overlap: 0.55 # minimum field-of-view overlap 0.55
     use_cnn: false # whether to use the segmentation CNN
-    parallelise_detection: false
-    num_matching_threads: 1
+    parallelise_detection: true
+    num_matching_threads: 3
 
 # estimator parameters
 estimator_parameters:
@@ -99,7 +99,7 @@ estimator_parameters:
     num_loop_closure_frames: 5 # number of loop closure frames in optimisation window
     num_imu_frames: 3 # number of frames linked by most recent nonlinear IMU error terms
     do_loop_closures: 1
-    do_final_ba: 0
+    do_final_ba: 1
     enforce_realtime: 1 # keep realtime cutoff to prevent runaway RANSAC
     realtime_min_iterations: 2
     realtime_max_iterations: 6
