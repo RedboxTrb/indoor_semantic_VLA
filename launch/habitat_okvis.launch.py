@@ -15,6 +15,7 @@ def generate_launch_description():
     okvis_config = os.path.expanduser('~/habitat_slam/habitat_okvis2.yaml')
     se_config    = os.path.expanduser('~/habitat_slam/se2.yaml')
     mesh_file    = os.path.join(okvis_pkg, 'resources', 'meshes', 'realsense.dae')
+    rviz_config  = os.path.join(okvis_pkg, 'config', 'rviz2', 'rviz2_okvis2x_config.rviz')
 
     csv_path_arg = DeclareLaunchArgument('csv_path', default_value='/tmp/habitat_okvis')
 
@@ -22,7 +23,12 @@ def generate_launch_description():
         'LD_LIBRARY_PATH',
         [os.environ.get('LD_LIBRARY_PATH', ''), ':', _TORCH_LIB]
     )
-    malloc_env = SetEnvironmentVariable('MALLOC_CHECK_', '0')
+    malloc_env   = SetEnvironmentVariable('MALLOC_CHECK_', '0')
+    jemalloc_env = SetEnvironmentVariable(
+        'LD_PRELOAD', '/usr/lib/x86_64-linux-gnu/libjemalloc.so.2'
+    )
+    omp_env      = SetEnvironmentVariable('OMP_NUM_THREADS', '2')
+    omp_wait_env = SetEnvironmentVariable('OMP_WAIT_POLICY', 'passive')
 
     okvis_node = Node(
         package='okvis',
@@ -30,6 +36,7 @@ def generate_launch_description():
         name='okvis',
         namespace='okvis',
         output='screen',
+        prefix='gdb -batch -ex "set print thread-events off" -ex "set logging file /tmp/okvis_gdb.log" -ex "set logging on" -ex run -ex "thread 1" -ex "bt full" -ex "thread apply all bt" -ex quit --args',
         parameters=[{
             'config_filename':    okvis_config,
             'se_config_filename': se_config,
@@ -59,6 +66,9 @@ def generate_launch_description():
     return LaunchDescription([
         torch_lib_env,
         malloc_env,
+        jemalloc_env,
+        omp_env,
+        omp_wait_env,
         csv_path_arg,
         okvis_node,
     ])
